@@ -1,0 +1,155 @@
+---
+title: "Project1"
+author: "Nihar Dave"
+date: "2023-02-21"
+output: word_document
+---
+
+```{r}
+library(fpp3) 
+library(tidyverse) 
+library(readxl) 
+library(readr) 
+library(dplyr) 
+library(ggplot2)
+library(forecast)
+
+library(readr) 
+library(stringr) 
+library(knitr) 
+library(seasonal) 
+library(forecast) 
+```
+
+```{r}
+setwd("/Users/nihardave/Desktop/Sem2/Statistical Forecasting")
+library(readxl)
+
+Project1_data <- read_excel("Project1_data.xls")%>%
+  mutate(Date = as.Date(Date), 
+         Unemployment_Rate = as.numeric(Unemployment_Rate)) %>%
+  as_tsibble(index = Date)
+Project1_data
+
+```
+
+#### Creating time series object:
+
+```{r}
+data_ts <- ts(Project1_data$Unemployment_Rate, start = c(1982,12,01), frequency =12)
+```
+
+#### Plotting Time series:
+
+```{r}
+autoplot(data_ts) + xlab("Time") + ylab("Unemployment Rate") + ggtitle("Unemployment Rate of Canada aged 15 or more")
+```
+
+#### ACF plot
+
+```{r}
+acf(data_ts,lag.max = 120)
+ggtsdisplay(data_ts)
+```
+
+#### Decompose time series:
+
+```{r}
+data_decomp <- decompose(data_ts)
+autoplot(data_decomp)
+```
+
+#### Training and testing data set:
+
+```{r}
+train_data <- window(data_ts, end = c(2017,12))
+test_data <- window(data_ts, start = c(2017,01))
+```
+
+1.  Fitting a ETS model & generating forecast for testing data:
+
+```{r}
+data_ets <- ets(train_data)
+data_fc <- forecast::forecast(data_ets, h = length(test_data))
+```
+
+Plotting forecast & actual values:
+
+```{r}
+autoplot(data_fc) + xlab("Time") + ylab("Unemployment Rate") + ggtitle("Unemployment rates Forecast using ETS model") +
+  autolayer(test_data, series = "Actual") + 
+  guides(colour = guide_legend(title = "Forecast"))
+```
+
+2.  Fitting a Mean model & generating forecast for testing data:
+
+```{r}
+mean <-  meanf(data_ts, h=12)
+mean_forecast <- forecast::forecast(mean, h=12)
+```
+
+Plotting forecast & actual values:
+
+```{r}
+autoplot(mean_forecast) + xlab("Time") + ylab("Unemployment Rate") + ggtitle("Unemployment rates Forecast by mean model") +
+  autolayer(test_data, series = "Actual") +
+  guides(colour = guide_legend(title = "Forecast"))
+```
+
+3.  Fitting a Naive model & generating forecast for testing data:
+
+```{r}
+naive_data <-  naive(data_ts)
+naive_forecast <- forecast::forecast(naive_data)
+```
+
+Plotting forecast & actual values:
+
+```{r}
+autoplot(naive_forecast) + xlab("Time") + ylab("Unemployment Rate") + ggtitle("Unemployment rates Forecast by naive model") +
+  autolayer(test_data, series = "Actual") +
+  guides(colour = guide_legend(title = "Forecast"))
+```
+
+4.  Fitting a STL model & generating forecast for testing data:
+
+```{r}
+data_stl <- stlf(data_ts, s.window = "periodic")
+
+```
+
+Plotting forecast & actual values:
+
+```{r}
+autoplot(data_stl) + xlab("Time") + ylab("Unemployment Rate") + ggtitle("Unemployment rates Forecast by STL model") +
+  autolayer(data_ts, series = "Actual") + 
+  guides(colour = guide_legend(title = "Forecast"))
+```
+
+1.  Residual for ETS forecasting:
+
+```{r}
+ets_residual <- residuals(data_ets)
+autoplot(data_ets)+xlab("Time") + ylab("Unemployment Rate") + ggtitle("Residual for ETS")
+```
+
+2.  Residual of Mean forecast:
+
+```{r}
+mean_residual <- residuals(mean_forecast)
+autoplot(mean_residual)+xlab("Time") + ylab("Unemployment Rate") + ggtitle("Residual for Mean")
+```
+
+3.  Residual of naive forecast:
+
+```{r}
+naive_residual <- residuals(naive_forecast)
+autoplot(naive_residual)+xlab("Time") + ylab("Unemployment Rate") + ggtitle("Residual for Naive")
+```
+
+4.  Residual of STL Forecast:
+
+```{r}
+STL_residual <- residuals(data_stl)
+autoplot(STL_residual)+xlab("Time") + ylab("Unemployment Rate") + ggtitle("Residual for STL")
+```
